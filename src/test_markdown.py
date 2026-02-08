@@ -8,6 +8,8 @@ from markdown import (
     split_nodes_link,
     text_to_textnodes,
     markdown_to_blocks,
+    block_to_block_type,
+    BlockType,
 )
 from textnode import TextType, TextNode
 
@@ -109,6 +111,61 @@ This is the same paragraph on a new line
                 "- This is a list\n- with items",
             ],
         )
+
+    def test_block_to_block_type_heading(self):
+        self.assertEqual(block_to_block_type("# Heading 1"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("## Heading 2"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("### Heading 3"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("#### Heading 4"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("##### Heading 5"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("###### Heading 6"), BlockType.HEADING)
+
+        self.assertNotEqual(
+            block_to_block_type("####### Too many hashes"), BlockType.HEADING
+        )
+        self.assertNotEqual(block_to_block_type("No hash"), BlockType.HEADING)
+
+    def test_block_to_block_type_code(self):
+        self.assertEqual(block_to_block_type("```\ncode here\n```"), BlockType.CODE)
+        self.assertEqual(block_to_block_type("```single line```"), BlockType.CODE)
+
+        self.assertNotEqual(block_to_block_type("```not closed"), BlockType.CODE)
+        self.assertNotEqual(
+            block_to_block_type("not starting with ```"), BlockType.CODE
+        )
+
+    def test_block_to_block_type_quote(self):
+        self.assertEqual(block_to_block_type("> This is a quote"), BlockType.QUOTE)
+        self.assertEqual(block_to_block_type("> Line 1\n> Line 2"), BlockType.QUOTE)
+
+        self.assertNotEqual(block_to_block_type("Not a quote"), BlockType.QUOTE)
+        self.assertNotEqual(block_to_block_type(">Not a quote"), BlockType.QUOTE)
+
+    def test_block_to_block_type_unordered_list(self):
+        self.assertEqual(block_to_block_type("- Item 1"), BlockType.UNORDERED_LIST)
+        self.assertEqual(block_to_block_type("- "), BlockType.UNORDERED_LIST)
+        self.assertEqual(block_to_block_type("Not a list"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_ordered_list(self):
+        self.assertEqual(block_to_block_type("1. Item 1"), BlockType.ORDERED_LIST)
+        self.assertEqual(block_to_block_type("1. "), BlockType.ORDERED_LIST)
+
+        self.assertEqual(block_to_block_type("Not a list"), BlockType.PARAGRAPH)
+        self.assertEqual(
+            block_to_block_type("1.Item 1 (no space)"), BlockType.PARAGRAPH
+        )
+
+    def test_block_to_block_type_paragraph(self):
+        self.assertEqual(
+            block_to_block_type("This is a paragraph"), BlockType.PARAGRAPH
+        )
+        self.assertEqual(
+            block_to_block_type("Just some text\nwith multiple lines"),
+            BlockType.PARAGRAPH,
+        )
+
+        self.assertNotEqual(block_to_block_type("# Heading"), BlockType.PARAGRAPH)
+        self.assertNotEqual(block_to_block_type("> Quote"), BlockType.PARAGRAPH)
 
 
 if __name__ == "__main__":
