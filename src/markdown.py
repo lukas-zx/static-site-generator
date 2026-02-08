@@ -1,5 +1,5 @@
 import re
-from textnode import TextNode, TextType 
+from textnode import TextNode, TextType
 
 
 def split_nodes_delimiter(
@@ -9,10 +9,12 @@ def split_nodes_delimiter(
     for old_node in old_nodes:
         if old_node.text_type != TextType.TEXT:
             res.append(old_node)
+            continue
 
         parts = old_node.text.split(delimiter)
-        if len(parts) < 3:
-            raise Exception(f"invalid markdown syntax: {old_node.text}")
+        if len(parts) != 3:
+            res.append(old_node)
+            continue
 
         node1 = TextNode(parts[0], TextType.TEXT)
         node2 = TextNode(parts[1], text_type)
@@ -57,6 +59,7 @@ def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
 
     return res
 
+
 def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
     res: list[TextNode] = []
     for old_node in old_nodes:
@@ -80,3 +83,13 @@ def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
             res.append(TextNode(remaining_text, TextType.TEXT))
 
     return res
+
+
+def text_to_textnodes(text: str) -> list[TextNode]:
+    nodes = [TextNode(text, TextType.TEXT)]
+    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    nodes = split_nodes_image(nodes)
+    nodes = split_nodes_link(nodes)
+    return nodes
