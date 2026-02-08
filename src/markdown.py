@@ -1,7 +1,6 @@
 import re
 from htmlnode import HTMLNode
 from parentnode import ParentNode
-from leafnode import LeafNode
 from textnode import TextNode, TextType, text_node_to_html_node
 from enum import Enum
 
@@ -146,12 +145,14 @@ def block_to_block_type(block: str) -> BlockType:
 
     return BlockType.PARAGRAPH
 
+
 def text_to_children(text: str) -> list[HTMLNode]:
     textnodes = text_to_textnodes(text)
     res = []
     for textnode in textnodes:
         res.append(text_node_to_html_node(textnode))
     return res
+
 
 def block_to_html_node(block: str) -> HTMLNode:
     match block_to_block_type(block):
@@ -165,7 +166,7 @@ def block_to_html_node(block: str) -> HTMLNode:
             while level < len(block) and block[level] == "#":
                 level += 1
             parent = ParentNode(f"h{level}", None)
-            children = text_to_children(block[level + 1:])
+            children = text_to_children(block[level + 1 :])
             parent.children = children
             return parent
         case BlockType.CODE:
@@ -203,8 +204,6 @@ def block_to_html_node(block: str) -> HTMLNode:
                 lis.append(li)
             ol.children = lis
             return ol
-
-    return HTMLNode("", "", None)
 
 
 def markdown_to_html_node(markdown: str):
