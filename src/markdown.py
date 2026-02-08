@@ -1,6 +1,10 @@
 import re
-from textnode import TextNode, TextType
+from htmlnode import HTMLNode
+from parentnode import ParentNode
+from leafnode import LeafNode
+from textnode import TextNode, TextType, text_node_to_html_node
 from enum import Enum
+
 
 class BlockType(Enum):
     PARAGRAPH = "paragraph"
@@ -113,6 +117,7 @@ def markdown_to_blocks(markdown: str) -> list[str]:
             res.append(block)
     return res
 
+
 def block_to_block_type(block: str) -> BlockType:
     if bool(re.match(r"^#{1,6} ", block)):
         return BlockType.HEADING
@@ -131,11 +136,83 @@ def block_to_block_type(block: str) -> BlockType:
         return BlockType.UNORDERED_LIST
 
     is_ol = True
+    OL_REGEX = re.compile(r"^\d+\. ")
     for line in lines:
-        if not re.compile(r"^\d+\. ").match(line):
+        if not OL_REGEX.match(line):
             is_ol = False
             break
     if is_ol:
         return BlockType.ORDERED_LIST
 
     return BlockType.PARAGRAPH
+
+def text_to_children(text: str) -> list[HTMLNode]:
+    textnodes = text_to_textnodes(text)
+    res = []
+    for textnode in textnodes:
+        res.append(text_node_to_html_node(textnode))
+    return res
+
+def block_to_html_node(block: str) -> HTMLNode:
+    match block_to_block_type(block):
+        case BlockType.PARAGRAPH:
+            parent = ParentNode("p", None)
+            children = text_to_children(block.replace("\n", " "))
+            parent.children = children
+            return parent
+        case BlockType.HEADING:
+            level = 0
+            while level < len(block) and block[level] == "#":
+                level += 1
+            parent = ParentNode(f"h{level}", None)
+            children = text_to_children(block[level + 1:])
+            parent.children = children
+            return parent
+        case BlockType.CODE:
+            code = ParentNode("code", None)
+            pre = ParentNode("pre", [code])
+            child = TextNode(block.strip("```").lstrip(), TextType.TEXT)
+            child = text_node_to_html_node(child)
+            code.children = [child]
+            return pre
+        case BlockType.QUOTE:
+            parent = ParentNode("blockquote", None)
+            children = text_to_children(block.lstrip("> "))
+            parent.children = children
+            return parent
+        case BlockType.UNORDERED_LIST:
+            ul = ParentNode("ul", None)
+            lis: list[HTMLNode] = []
+            lines = block.split("\n")
+            for line in lines:
+                li = ParentNode("li", None)
+                children = text_to_children(line.lstrip("- "))
+                li.children = children
+                lis.append(li)
+            ul.children = lis
+            return ul
+        case BlockType.ORDERED_LIST:
+            ol = ParentNode("ol", None)
+            lis: list[HTMLNode] = []
+            lines = block.split("\n")
+            for line in lines:
+                line = line[3:]
+                li = ParentNode("li", None)
+                children = text_to_children(line)
+                li.children = children
+                lis.append(li)
+            ol.children = lis
+            return ol
+
+    return HTMLNode("", "", None)
+
+
+def markdown_to_html_node(markdown: str):
+    blocks = markdown_to_blocks(markdown)
+    parent = ParentNode("div", [], None)
+    for block in blocks:
+        if parent.children is None:
+            parent.children = block_to_html_node(block)
+        else:
+            parent.children.append(block_to_html_node(block))
+    return parent

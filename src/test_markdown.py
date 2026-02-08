@@ -1,6 +1,7 @@
 import unittest
 
 from markdown import (
+    markdown_to_html_node,
     split_nodes_delimiter,
     extract_markdown_images,
     extract_markdown_links,
@@ -166,6 +167,90 @@ This is the same paragraph on a new line
 
         self.assertNotEqual(block_to_block_type("# Heading"), BlockType.PARAGRAPH)
         self.assertNotEqual(block_to_block_type("> Quote"), BlockType.PARAGRAPH)
+
+    def test_markdown_to_html_paragraph(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_markdown_to_html_heading(self):
+        md = """
+# This is a Heading containing **bold** text
+
+#### This is another Heading containing _italic_ text
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>This is a Heading containing <b>bold</b> text</h1><h4>This is another Heading containing <i>italic</i> text</h4></div>",
+        )
+
+    def test_markdown_to_html_codeblock(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
+    def test_markdown_to_html_quote(self):
+        md = """
+> This is a _quote_ with further formatting
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><blockquote>This is a <i>quote</i> with further formatting</blockquote></div>",
+        )
+
+    def test_markdown_to_html_ul(self):
+        md = """
+- List item 1
+- List item **2**
+- List _item_ 3
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><ul><li>List item 1</li><li>List item <b>2</b></li><li>List <i>item</i> 3</li></ul></div>",
+        )
+
+    def test_markdown_to_html_ol(self):
+        md = """
+1. List item 1
+2. List item **2**
+3. List _item_ 3
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><ol><li>List item 1</li><li>List item <b>2</b></li><li>List <i>item</i> 3</li></ol></div>",
+        )
 
 
 if __name__ == "__main__":
